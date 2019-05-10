@@ -122,11 +122,11 @@ namespace TheProxor.GI
             };
 
             material.SetMatrix("_GIc2w", camera.cameraToWorldMatrix);
-            Shader.SetGlobalMatrix("_c2w" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
-            Shader.SetGlobalMatrix("_w2c" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
-            Shader.SetGlobalVector("_camDir" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
+            Shader.SetGlobalMatrix("_c2w_0" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
+            Shader.SetGlobalMatrix("_w2c_0" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
+            Shader.SetGlobalVector("_camDir_0" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
             Graphics.Blit(source, textureNormalDepth, material, 1);
-            Shader.SetGlobalTexture("_NormalDepth" + state.selfNumber.ToString(), textureNormalDepth);
+            Shader.SetGlobalTexture("_NormalDepth_0" + state.selfNumber.ToString(), textureNormalDepth);
 
             textureNormalDepth.Release();
 
@@ -145,7 +145,10 @@ namespace TheProxor.GI
                 filterMode = FilterMode.Trilinear,
             };
 
-            var texture3D = new Texture3D(256, 256, texure3DDepth, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_SRGB, UnityEngine.Experimental.Rendering.TextureCreationFlags.None);
+            var texture3D = new Texture3D(256, 256, texure3DDepth, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_SRGB, UnityEngine.Experimental.Rendering.TextureCreationFlags.None)
+            {
+                filterMode = FilterMode.Point
+            };
 
             for (var i = 0; i < texure3DDepth; i++)
             {

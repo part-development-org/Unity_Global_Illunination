@@ -26,10 +26,10 @@
 				sampler2D _CameraGBufferTexture2;
 				sampler2D _Noise;
 			
-				sampler2D _NormalDepth00, _NormalDepth01, _NormalDepth02, _NormalDepth03, _NormalDepth04, _NormalDepth05, _NormalDepth06, _NormalDepth07, _NormalDepth08;
-				float4x4 _c2w00, _c2w01, _c2w02, _c2w03, _c2w04, _c2w05, _c2w06, _c2w07, _c2w08;
-				float4x4 _w2c00, _w2c01, _w2c02, _w2c03, _w2c04, _w2c05, _w2c06, _w2c07, _w2c08;
-				float4 _camDir00, _camDir01, _camDir02, _camDir03, _camDir04, _camDir05, _camDir06, _camDir07, _camDir08;
+				sampler2D _NormalDepth_00, _NormalDepth_01, _NormalDepth_02, _NormalDepth_03, _NormalDepth_04, _NormalDepth_05, _NormalDepth_06, _NormalDepth_07, _NormalDepth_08;
+				float4x4 _c2w_00, _c2w_01, _c2w_02, _c2w_03, _c2w_04, _c2w_05, _c2w_06, _c2w_07, _c2w_08;
+				float4x4 _w2c_00, _w2c_01, _w2c_02, _w2c_03, _w2c_04, _w2c_05, _w2c_06, _w2c_07, _w2c_08;
+				float4 _camDir_00, _camDir_01, _camDir_02, _camDir_03, _camDir_04, _camDir_05, _camDir_06, _camDir_07, _camDir_08;
 
 			struct appdata	
 			{
@@ -83,15 +83,15 @@
 				float3 pos_o = float3((i.uv * 2 - 1 - p13_31) / p11_22, 1) * depth_o;
 				float3 pos_w = mul((float3x3)unity_CameraToWorld, pos_o) + _WorldSpaceCameraPos;
 
-				float3 pos_c_00 = mul(_w2c00, pos_w - _camDir00);				
-				float3 pos_c_01 = mul(_w2c01, pos_w - _camDir01);
-				float3 pos_c_02 = mul(_w2c02, pos_w - _camDir02);
-				float3 pos_c_03 = mul(_w2c03, pos_w - _camDir03);
-				float3 pos_c_04 = mul(_w2c04, pos_w - _camDir04);
-				float3 pos_c_05 = mul(_w2c05, pos_w - _camDir05);
-				float3 pos_c_06 = mul(_w2c06, pos_w - _camDir06);
-				float3 pos_c_07 = mul(_w2c07, pos_w - _camDir07);
-				float3 pos_c_08 = mul(_w2c08, pos_w - _camDir08);
+				float3 pos_c_00 = mul(_w2c_00, pos_w - _camDir_00);				
+				float3 pos_c_01 = mul(_w2c_01, pos_w - _camDir_01);
+				float3 pos_c_02 = mul(_w2c_02, pos_w - _camDir_02);
+				float3 pos_c_03 = mul(_w2c_03, pos_w - _camDir_03);
+				float3 pos_c_04 = mul(_w2c_04, pos_w - _camDir_04);
+				float3 pos_c_05 = mul(_w2c_05, pos_w - _camDir_05);
+				float3 pos_c_06 = mul(_w2c_06, pos_w - _camDir_06);
+				float3 pos_c_07 = mul(_w2c_07, pos_w - _camDir_07);
+				float3 pos_c_08 = mul(_w2c_08, pos_w - _camDir_08);
 				pos_c_00.z *= -1;
 				pos_c_01.z *= -1;
 				pos_c_02.z *= -1;
@@ -118,15 +118,15 @@
 					//Random vector and ray length
 					float3 delta = spherical_kernel(uv, s);				
 
-					float3 delta00 = mul(_w2c00, delta);
-					float3 delta01 = mul(_w2c01, delta);
-					float3 delta02 = mul(_w2c02, delta);
-					float3 delta03 = mul(_w2c03, delta);
-					float3 delta04 = mul(_w2c04, delta);
-					float3 delta05 = mul(_w2c05, delta);
-					float3 delta06 = mul(_w2c06, delta);
-					float3 delta07 = mul(_w2c07, delta);
-					float3 delta08 = mul(_w2c08, delta);
+					float3 delta00 = mul(_w2c_00, delta);
+					float3 delta01 = mul(_w2c_01, delta);
+					float3 delta02 = mul(_w2c_02, delta);
+					float3 delta03 = mul(_w2c_03, delta);
+					float3 delta04 = mul(_w2c_04, delta);
+					float3 delta05 = mul(_w2c_05, delta);
+					float3 delta06 = mul(_w2c_06, delta);
+					float3 delta07 = mul(_w2c_07, delta);
+					float3 delta08 = mul(_w2c_08, delta);
 
 					////////////////
 					/////Cam_00/////
@@ -155,15 +155,15 @@
 						float2 uv_s_07 = (pos_s_07.xy / 256) + 0.5;
 						float2 uv_s_08 = (pos_s_08.xy / 256) + 0.5;
 
-						float4 normDepth00 = tex2D(_NormalDepth00, uv_s_00);
-						float4 normDepth01 = tex2D(_NormalDepth01, uv_s_01);
-						float4 normDepth02 = tex2D(_NormalDepth02, uv_s_02);
-						float4 normDepth03 = tex2D(_NormalDepth03, uv_s_03);
-						float4 normDepth04 = tex2D(_NormalDepth04, uv_s_04);
-						float4 normDepth05 = tex2D(_NormalDepth05, uv_s_05);
-						float4 normDepth06 = tex2D(_NormalDepth06, uv_s_06);
-						float4 normDepth07 = tex2D(_NormalDepth07, uv_s_07);
-						float4 normDepth08 = tex2D(_NormalDepth08, uv_s_08);
+						float4 normDepth00 = tex2D(_NormalDepth_00, uv_s_00);
+						float4 normDepth01 = tex2D(_NormalDepth_01, uv_s_01);
+						float4 normDepth02 = tex2D(_NormalDepth_02, uv_s_02);
+						float4 normDepth03 = tex2D(_NormalDepth_03, uv_s_03);
+						float4 normDepth04 = tex2D(_NormalDepth_04, uv_s_04);
+						float4 normDepth05 = tex2D(_NormalDepth_05, uv_s_05);
+						float4 normDepth06 = tex2D(_NormalDepth_06, uv_s_06);
+						float4 normDepth07 = tex2D(_NormalDepth_07, uv_s_07);
+						float4 normDepth08 = tex2D(_NormalDepth_08, uv_s_08);
 						
 						float check_00 = (pos_s_00.z - normDepth00.a);
 						float check_01 = (pos_s_01.z - normDepth01.a);
@@ -191,63 +191,63 @@
 							float d1 = smoothstep(0, 64, length(v_s2));
 							float a2 = check_00 + offset  < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w00, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_00, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_01.xy, normDepth01.a);
 							v_s2 = pos_s - pos_c_01;
 							d1 = smoothstep(0, 64, length(v_s2));
 							a2 = check_01 + offset  < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w01, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_01, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_02.xy, normDepth02.a);
 							v_s2 = pos_s - pos_c_02;
 							d1 = smoothstep(0, 64,length(v_s2));							
 							a2 = check_02 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w02, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_02, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_03.xy, normDepth03.a);
 							v_s2 = pos_s - pos_c_03;
 							d1 = smoothstep(0, 64, length(v_s2));							
 							a2 = check_03 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w03, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_03, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_04.xy, normDepth04.a);
 							v_s2 = pos_s - pos_c_04;
 							d1 = smoothstep(0, 64, length(v_s2));
 							a2 = check_04 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w04, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_04, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_05.xy, normDepth05.a);
 							v_s2 = pos_s - pos_c_05;
 							d1 = smoothstep(0, 64, length(v_s2));
 							a2 = check_05 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w05, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_05, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_06.xy, normDepth06.a);
 							v_s2 = pos_s - pos_c_06;
 							d1 = smoothstep(0, 64,length(v_s2));
 							a2 = check_06 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w06, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_06, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_07.xy, normDepth07.a);
 							v_s2 = pos_s - pos_c_07;
 							d1 = smoothstep(0, 64, length(v_s2));
 							a2 = check_07 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w07, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_07, normalize(v_s2)) * d1;
 
 							pos_s = float3(pos_s_08.xy, normDepth08.a);
 							v_s2 = pos_s - pos_c_08;
 							d1 = smoothstep(0, 64, length(v_s2));
 							a2 = check_08 + offset < lengthRay;
 							occ.a += a2;
-							occ.xyz += mul(_c2w08, normalize(v_s2)) * d1;
+							occ.xyz += mul(_c2w_08, normalize(v_s2)) * d1;
 
 
 							r = 10;
