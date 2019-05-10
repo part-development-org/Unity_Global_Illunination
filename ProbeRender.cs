@@ -8,6 +8,7 @@ using UnityEditor;
 
 namespace TheProxor.GI
 {
+
     [RequireComponent(typeof(Camera)), ExecuteInEditMode]
     public class ProbeRender : MonoBehaviour
     {
@@ -65,20 +66,27 @@ namespace TheProxor.GI
             }
         }
 
-        private Queue<Action<RenderTexture, RenderTexture>> renderActions = new Queue<Action<RenderTexture, RenderTexture>>();
+        private Queue<Action<RenderTexture>> renderActions = new Queue<Action<RenderTexture>>();
 
         public Camera camera { get { return GetComponent<Camera>(); } }
 
         public bool NotBakeNow { get { return renderActions == null || renderActions.Count == 0; } }
+
+        private const string shaderName = "Hidden/GI_render";
+
+        [NonSerialized]
+        private Material material;
 
         /// <summary>
         /// Use it for bake GI
         /// </summary>
         public void Bake()
         {
-            renderActions = new Queue<Action<RenderTexture, RenderTexture>>();
+            renderActions = new Queue<Action<RenderTexture>>();
             camera.enabled = true;
             SetCameraState(CameraState.defaultState);
+
+            material = new Material(Shader.Find(shaderName)); 
 
             CameraState.enumerator.Reset();
             CameraState.enumerator.MoveNext();
@@ -98,37 +106,60 @@ namespace TheProxor.GI
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
             if (!NotBakeNow)          
-                renderActions.Peek().Invoke(source, destination);           
+                renderActions.Peek().Invoke(source);           
         }
 
         #region Render Actions Methods 
-        private void RenderGITexture(RenderTexture source, RenderTexture destination)
+        private void RenderGITexture(RenderTexture source)
         {
             var state = CameraState.enumerator.Current as CameraState;
 
             Debug.Log("Render GI Textures for " + state.selfNumber.ToString() + "...");
 
+            var textureNormalDepth = new RenderTexture(source.width, source.height, 24, RenderTextureFormat.ARGBFloat)
+            {
+                filterMode = FilterMode.Trilinear,
+            };
 
-            Texture2D tex = new Texture2D(source.width, source.height, TextureFormat.RGB24, false);
-            RenderTexture.active = source;
-            tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
-            tex.Apply();
+            material.SetMatrix("_GIc2w", camera.cameraToWorldMatrix);
+            Shader.SetGlobalMatrix("_c2w" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
+            Shader.SetGlobalMatrix("_w2c" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
+            Shader.SetGlobalVector("_camDir" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
+            Graphics.Blit(source, textureNormalDepth, material, 1);
+            Shader.SetGlobalTexture("_NormalDepth" + state.selfNumber.ToString(), textureNormalDepth);
 
-            byte[] bytes = tex.EncodeToPNG();
-
-            System.IO.File.WriteAllBytes(Application.dataPath + "/" +state.selfNumber.ToString() + ".png", bytes);
-
+            textureNormalDepth.Release();
 
             SetCameraState(state);
             CameraState.enumerator.MoveNext();
         }
 
-        private void Render3DTextures(RenderTexture source, RenderTexture destination)
+        private void Render3DTextures(RenderTexture source)
         {
+            const int texure3DDepth = 60;
+
             Debug.Log("Render 3D Textures...");
+
+            var tmpTexture = new RenderTexture(source.width, source.height, 24, RenderTextureFormat.ARGB32)
+            {
+                filterMode = FilterMode.Trilinear,
+            };
+
+            var texture3D = new Texture3D(256, 256, texure3DDepth, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_SRGB, UnityEngine.Experimental.Rendering.TextureCreationFlags.None);
+
+            for (var i = 0; i < texure3DDepth; i++)
+            {
+                Shader.SetGlobalInt("_ProbeHeight", i);
+                Graphics.Blit(source, tmpTexture, material, 0);
+                Graphics.CopyTexture(tmpTexture, 0, texture3D, i);
+            }
+
+            Shader.SetGlobalTexture("_volGIcol", texture3D);
+
+            tmpTexture.Release();
         }
 
-        private void Release(RenderTexture source, RenderTexture destination)
+        private void Release(RenderTexture source)
         {
             Debug.Log("GI are backed!");
             camera.enabled = false;
@@ -174,7 +205,8 @@ namespace TheProxor.GI
         private void SetCameraSettings(Camera camera)
         {
             camera.enabled = false;
-            camera.hideFlags = HideFlags.None;
+            camera.depthTextureMode = DepthTextureMode.DepthNormals;
+            camera.hideFlags = HideFlags.HideInInspector;
             camera.allowHDR = false;
             camera.allowMSAA = false;
             camera.renderingPath = RenderingPath.VertexLit;

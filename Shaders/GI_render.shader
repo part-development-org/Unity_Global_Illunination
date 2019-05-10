@@ -1,4 +1,4 @@
-﻿Shader "Hidden/GI_renderTest"
+﻿Shader "Hidden/GI_render"
 {
 	Properties
 	{
