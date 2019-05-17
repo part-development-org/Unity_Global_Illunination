@@ -74,6 +74,9 @@ namespace TheProxor.GI
         [NonSerialized]
         private Material material;
 
+        private RenderTexture textureNormalDepth;
+
+
         /// <summary>
         /// Use it for bake GI
         /// </summary>
@@ -109,15 +112,19 @@ namespace TheProxor.GI
         #region Render Actions Methods 
         private void RenderGITexture(RenderTexture source)
         {
-            var state = CameraState.enumerator.Current as CameraState;
+            if (textureNormalDepth != null)
+                textureNormalDepth.Release();
 
-            Debug.Log("Render GI Textures for " + state.selfNumber.ToString() + "...");
-
-            var textureNormalDepth = new RenderTexture(source.width, source.height, 24, RenderTextureFormat.ARGBFloat)
+            textureNormalDepth = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGBFloat)
             {
                 filterMode = FilterMode.Point,
             };
 
+            var state = CameraState.enumerator.Current as CameraState;
+
+            Debug.Log("Render GI Textures for " + state.selfNumber.ToString() + "...");
+
+          
             material.SetMatrix("_GIc2w", camera.cameraToWorldMatrix);
             Shader.SetGlobalMatrix("_c2w_0" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
             Shader.SetGlobalMatrix("_w2c_0" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
@@ -183,6 +190,8 @@ namespace TheProxor.GI
     {
         private ProbeRender window;
 
+        private List<string> layersList = new List<string>();
+
         private void OnEnable()
         {
             window = target as ProbeRender;
@@ -194,7 +203,7 @@ namespace TheProxor.GI
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             {
-                window.camera.cullingMask = EditorGUILayout.MaskField("Culling Mask", window.camera.cullingMask, UnityEditorInternal.InternalEditorUtility.layers);
+                window.camera.cullingMask = EditorGUILayout.MaskField("Culling Mask", window.camera.cullingMask, layersList.ToArray());
 
                 GUILayout.Space(10);
 
@@ -218,6 +227,13 @@ namespace TheProxor.GI
             camera.orthographicSize = 128;
             camera.aspect = 1;
             camera.pixelRect = new Rect(0, 0, 256, 256);
+
+            for (int i = 0; i <= 31; i++) 
+            {
+                var layer = LayerMask.LayerToName(i);
+                if (!string.IsNullOrEmpty(layer)) 
+                    layersList.Add(layer);
+            }
         }
     }
 #endif
