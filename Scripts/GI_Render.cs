@@ -71,9 +71,9 @@ public class GI_Render : MonoBehaviour
 
         Graphics.Blit(source, _skyAO, _material, 0);
         Graphics.Blit(source, _smallAO, _material, 1);
+        _material.SetTexture("_smallAO", _smallAO);
 
-
-
+        _material.SetFloat("_blurSharpness", 0.65f);
         // blur vertical
         _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 2.7f));
         Graphics.Blit(_skyAO, _blurY, _material, 2);
@@ -81,31 +81,18 @@ public class GI_Render : MonoBehaviour
         _material.SetVector("_DenoiseAngle", new Vector2(2.7f, 0.0f));
         Graphics.Blit(_blurY, _blurX, _material, 2);
 
+        Graphics.Blit(_blurX, _blurY, _material, 5);
+
+        _material.SetFloat("_blurSharpness", 0.925f);
         // blur vertical
         _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 1.35f));
-        Graphics.Blit(_blurX, _blurY, _material, 2);
+        Graphics.Blit(_blurY, _blurX, _material, 2);
         // blur horizontal
         _material.SetVector("_DenoiseAngle", new Vector2(1.35f, 0.0f));
-        Graphics.Blit(_blurY, _blurX, _material, 2);
+        Graphics.Blit(_blurX, _blurY, _material, 2);
         
         //Upscaling    
-        _material.SetTexture("_HalfRes", _blurX);       
-
-        // blur vertical
-        _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 1.35f));
-        Graphics.Blit(_smallAO, _blurY, _material, 2);
-        // blur horizontal
-        _material.SetVector("_DenoiseAngle", new Vector2(1.35f, 0.0f));
-        Graphics.Blit(_blurY, _smallAO, _material, 2);
-
-        // blur vertical
-        _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 1.35f));
-        Graphics.Blit(_smallAO, _blurY, _material, 2);
-        // blur horizontal
-        _material.SetVector("_DenoiseAngle", new Vector2(1.35f, 0.0f));
-        Graphics.Blit(_blurY, _smallAO, _material, 2);
-
-        _material.SetTexture("_SmallAO", _smallAO);
+        _material.SetTexture("_HalfRes", _blurY);
 
         Graphics.Blit(source, destination, _material, 3); 
     }
