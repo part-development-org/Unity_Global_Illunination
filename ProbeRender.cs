@@ -46,14 +46,11 @@ namespace TheProxor.GI
 
             internal static readonly IEnumerable<CameraState> cameraStates = new CameraState[]
             {
+            new CameraState(new Vector3(0, 200.0f, 0), new Vector3(90, 0, 0), 128),
             new CameraState(new Vector3(0, 141.5f, 141.5f), new Vector3(135, 0, 0), 128),
             new CameraState(new Vector3(0, 141.5f, -141.5f), new Vector3(45, 0, 0), 128),
             new CameraState(new Vector3(141.5f, 141.5f, 0), new Vector3(45, -90, -90), 128),
             new CameraState(new Vector3(-141.5f, 141.5f, 0), new Vector3(45, 90, 90), 128),
-            new CameraState(new Vector3(100, 141.5f, -100), new Vector3(135, 135, 0), 180),
-            new CameraState(new Vector3(-100, 141.5f, 100), new Vector3(45, 135, 0), 180),
-            new CameraState(new Vector3(-100, 141.5f, -100), new Vector3(45, 45, -90), 180),
-            new CameraState(new Vector3(100, 141.5f, 100), new Vector3(45, 225, 90), 180),
             new CameraState(Vector3.zero, Quaternion.identity, 128)
             };
 
@@ -72,7 +69,7 @@ namespace TheProxor.GI
 
         public bool NotBakeNow { get { return renderActions == null || renderActions.Count == 0; } }
 
-        private const string shaderName = "Hidden/GI_render";
+        private const string shaderName = "Hidden/GI_ProbeRender";
 
         [NonSerialized]
         private Material material;
@@ -118,17 +115,18 @@ namespace TheProxor.GI
 
             var textureNormalDepth = new RenderTexture(source.width, source.height, 24, RenderTextureFormat.ARGBFloat)
             {
-                filterMode = FilterMode.Trilinear,
+                filterMode = FilterMode.Point,
             };
 
             material.SetMatrix("_GIc2w", camera.cameraToWorldMatrix);
             Shader.SetGlobalMatrix("_c2w_0" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
             Shader.SetGlobalMatrix("_w2c_0" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
             Shader.SetGlobalVector("_camDir_0" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
-            Graphics.Blit(source, textureNormalDepth, material, 1);
+            Shader.SetGlobalFloat("_camSize_0" + state.selfNumber.ToString(), state.orthoSize * 2); 
+            Graphics.Blit(source, textureNormalDepth, material, 0);
             Shader.SetGlobalTexture("_NormalDepth_0" + state.selfNumber.ToString(), textureNormalDepth);
 
-            textureNormalDepth.Release();
+           // textureNormalDepth.Release();
 
             SetCameraState(state);
             CameraState.enumerator.MoveNext();
@@ -142,22 +140,23 @@ namespace TheProxor.GI
 
             var tmpTexture = new RenderTexture(source.width, source.height, 24, RenderTextureFormat.ARGB32)
             {
-                filterMode = FilterMode.Trilinear,
+                filterMode = FilterMode.Bilinear,
             };
 
-            var texture3D = new Texture3D(256, 256, texure3DDepth, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_SRGB, UnityEngine.Experimental.Rendering.TextureCreationFlags.None)
+            var texture3D = new Texture2DArray(256, 256, texure3DDepth, TextureFormat.RGBA32, false)
+            //var texture3D = new Texture3D(256, 256, texure3DDepth, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_SRGB, UnityEngine.Experimental.Rendering.TextureCreationFlags.None)            
             {
-                filterMode = FilterMode.Point
+                filterMode = FilterMode.Bilinear
             };
 
             for (var i = 0; i < texure3DDepth; i++)
             {
                 Shader.SetGlobalInt("_ProbeHeight", i);
-                Graphics.Blit(source, tmpTexture, material, 0);
+                Graphics.Blit(source, tmpTexture, material, 1);
                 Graphics.CopyTexture(tmpTexture, 0, texture3D, i);
             }
 
-            Shader.SetGlobalTexture("_volGIcol", texture3D);
+            Shader.SetGlobalTexture("_skyAOtex", texture3D);
 
             tmpTexture.Release();
         }
@@ -209,7 +208,7 @@ namespace TheProxor.GI
         {
             camera.enabled = false;
             camera.depthTextureMode = DepthTextureMode.DepthNormals;
-            camera.hideFlags = HideFlags.HideInInspector;
+            camera.hideFlags = HideFlags.None;
             camera.allowHDR = false;
             camera.allowMSAA = false;
             camera.renderingPath = RenderingPath.VertexLit;
