@@ -112,9 +112,6 @@ namespace TheProxor.GI
         #region Render Actions Methods 
         private void RenderGITexture(RenderTexture source)
         {
-            if (textureNormalDepth != null)
-                textureNormalDepth.Release();
-
             textureNormalDepth = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGBFloat)
             {
                 filterMode = FilterMode.Point,
@@ -132,8 +129,6 @@ namespace TheProxor.GI
             Shader.SetGlobalFloat("_camSize_0" + state.selfNumber.ToString(), state.orthoSize * 2); 
             Graphics.Blit(source, textureNormalDepth, material, 0);
             Shader.SetGlobalTexture("_NormalDepth_0" + state.selfNumber.ToString(), textureNormalDepth);
-
-           // textureNormalDepth.Release();
 
             SetCameraState(state);
             CameraState.enumerator.MoveNext();
@@ -170,6 +165,9 @@ namespace TheProxor.GI
 
         private void Release(RenderTexture source)
         {
+            if (textureNormalDepth != null)
+                textureNormalDepth.Release();
+
             Debug.Log("GI are backed!");
             camera.enabled = false;
         }
