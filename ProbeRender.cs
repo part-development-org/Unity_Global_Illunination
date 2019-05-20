@@ -23,6 +23,7 @@ namespace TheProxor.GI
 
             public int selfNumber { get; private set; }
 
+
             public CameraState(Vector3 position, Vector3 rotation, float orthoSize)
             {
                 this.position = position;
@@ -56,7 +57,6 @@ namespace TheProxor.GI
 
             internal static IEnumerator enumerator = cameraStates.GetEnumerator();
             internal static readonly CameraState defaultState = new CameraState(new Vector3(0, 200, 0), new Vector3(90, 0, 0), 128);
-
             public IEnumerator GetEnumerator()
             {
                 return enumerator;
@@ -74,14 +74,17 @@ namespace TheProxor.GI
         [NonSerialized]
         private Material material;
 
-        private RenderTexture textureNormalDepth;
+        private RenderTexture textureNormalDepth, cubemapTexture;
 
+        public int cubemapCullingMask = 0;
 
         /// <summary>
         /// Use it for bake GI
         /// </summary>
         public void Bake()
         {
+            UpdateCubemap();
+
             renderActions = new Queue<Action<RenderTexture>>();
             camera.enabled = true;
             SetCameraState(CameraState.defaultState);
@@ -94,6 +97,7 @@ namespace TheProxor.GI
             foreach(var state in CameraState.cameraStates)
                 renderActions.Enqueue(RenderGITexture);
             renderActions.Enqueue(Render3DTextures);
+            renderActions.Enqueue(BakeCubemapToSingleImage);
             renderActions.Enqueue(Release);
 
             while(!NotBakeNow)
@@ -101,6 +105,7 @@ namespace TheProxor.GI
                 camera.Render();
                 renderActions.Dequeue();
             }
+          
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
@@ -123,12 +128,12 @@ namespace TheProxor.GI
 
           
             material.SetMatrix("_GIc2w", camera.cameraToWorldMatrix);
-            Shader.SetGlobalMatrix("_c2w_0" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
-            Shader.SetGlobalMatrix("_w2c_0" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
-            Shader.SetGlobalVector("_camDir_0" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
-            Shader.SetGlobalFloat("_camSize_0" + state.selfNumber.ToString(), state.orthoSize * 2); 
+            material.SetMatrix("_c2w_0" + state.selfNumber.ToString(), camera.cameraToWorldMatrix);
+            material.SetMatrix("_w2c_0" + state.selfNumber.ToString(), camera.worldToCameraMatrix);
+            material.SetVector("_camDir_0" + state.selfNumber.ToString(), new Vector4(camera.transform.position.x, camera.transform.position.y, camera.transform.position.z, camera.farClipPlane));
+            material.SetFloat("_camSize_0" + state.selfNumber.ToString(), state.orthoSize * 2); 
             Graphics.Blit(source, textureNormalDepth, material, 0);
-            Shader.SetGlobalTexture("_NormalDepth_0" + state.selfNumber.ToString(), textureNormalDepth);
+            material.SetTexture("_NormalDepth_0" + state.selfNumber.ToString(), textureNormalDepth);
 
             SetCameraState(state);
             CameraState.enumerator.MoveNext();
@@ -153,7 +158,7 @@ namespace TheProxor.GI
 
             for (var i = 0; i < texure3DDepth; i++)
             {
-                Shader.SetGlobalInt("_ProbeHeight", i);
+                material.SetInt("_ProbeHeight", i);
                 Graphics.Blit(source, tmpTexture, material, 1);
                 Graphics.CopyTexture(tmpTexture, 0, texture3D, i);
             }
@@ -161,6 +166,46 @@ namespace TheProxor.GI
             Shader.SetGlobalTexture("_skyAOtex", texture3D);
 
             tmpTexture.Release();
+        }
+
+
+        Camera cam;
+        RenderTexture renderTexture;
+        RenderTexture skyBoxTexture;
+        private void UpdateCubemap()
+        {
+            Camera cam;
+
+            GameObject obj = new GameObject("CubemapCamera", typeof(Camera));
+            obj.hideFlags = HideFlags.HideAndDontSave;
+            obj.transform.position = transform.position;
+            obj.transform.rotation = Quaternion.identity;
+            cam = obj.GetComponent<Camera>();
+            cam.farClipPlane = 100; // don't render very far into cubemap
+            cam.enabled = false;
+
+
+            renderTexture = new RenderTexture(128, 128, 16);
+            renderTexture.dimension = UnityEngine.Rendering.TextureDimension.Cube;
+            renderTexture.hideFlags = HideFlags.HideAndDontSave;
+
+            Shader.SetGlobalTexture("_SkyCube", renderTexture);
+
+            cam.transform.position = transform.position;
+            cam.RenderToCubemap(renderTexture, 63);
+
+            DestroyImmediate(cam);
+        }
+
+        private void BakeCubemapToSingleImage(RenderTexture source)
+        {
+            if (skyBoxTexture != null)
+                skyBoxTexture.Release();
+
+            skyBoxTexture = new RenderTexture(256, 128, 0);
+
+            Graphics.Blit(source, skyBoxTexture, material, 2);
+            Shader.SetGlobalTexture("_skyBoxTexture", skyBoxTexture);
         }
 
         private void Release(RenderTexture source)
@@ -179,6 +224,11 @@ namespace TheProxor.GI
             camera.orthographicSize = state.orthoSize;
             camera.transform.position = state.position;
             camera.transform.rotation = state.rotation;
+        }
+
+        private void OnDisable()
+        {
+            DestroyImmediate(renderTexture);
         }
     }
 
@@ -201,6 +251,10 @@ namespace TheProxor.GI
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             {
+                window.cubemapCullingMask = EditorGUILayout.MaskField("Cubemap Culling Mask", window.cubemapCullingMask, layersList.ToArray());
+
+                GUILayout.Space(10);
+
                 window.camera.cullingMask = EditorGUILayout.MaskField("Culling Mask", window.camera.cullingMask, layersList.ToArray());
 
                 GUILayout.Space(10);
