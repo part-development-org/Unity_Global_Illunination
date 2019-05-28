@@ -117,7 +117,7 @@ namespace TheProxor.GI
         #region Render Actions Methods 
         private void RenderGITexture(RenderTexture source)
         {
-            textureNormalDepth = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGBFloat)
+            textureNormalDepth = new RenderTexture(64, 64, 24, RenderTextureFormat.ARGBFloat)
             {
                 filterMode = FilterMode.Point,
             };
@@ -171,10 +171,12 @@ namespace TheProxor.GI
 
         Camera cam;
         RenderTexture renderTexture;
-        RenderTexture skyBoxTexture;
+        RenderTexture skyBoxDiffuseTexture, skyBoxReflectionTexture;
         private void UpdateCubemap()
         {
             Camera cam;
+
+            camera.transform.position = new Vector3(0, 60, 0);
 
             GameObject obj = new GameObject("CubemapCamera", typeof(Camera));
             obj.hideFlags = HideFlags.HideAndDontSave;
@@ -185,9 +187,11 @@ namespace TheProxor.GI
             cam.enabled = false;
 
 
-            renderTexture = new RenderTexture(128, 128, 16);
+            renderTexture = new RenderTexture(256, 256, 16);
             renderTexture.dimension = UnityEngine.Rendering.TextureDimension.Cube;
             renderTexture.hideFlags = HideFlags.HideAndDontSave;
+            renderTexture.useMipMap = true;
+            renderTexture.autoGenerateMips = true;
 
             Shader.SetGlobalTexture("_SkyCube", renderTexture);
 
@@ -195,17 +199,38 @@ namespace TheProxor.GI
             cam.RenderToCubemap(renderTexture, 63);
 
             DestroyImmediate(cam);
+
+            camera.transform.position = Vector3.zero;
         }
 
         private void BakeCubemapToSingleImage(RenderTexture source)
         {
-            if (skyBoxTexture != null)
-                skyBoxTexture.Release();
+            if (skyBoxDiffuseTexture != null)
+                skyBoxDiffuseTexture.Release();
 
-            skyBoxTexture = new RenderTexture(256, 128, 0);
+            if (skyBoxReflectionTexture != null)
+                skyBoxReflectionTexture.Release();
 
-            Graphics.Blit(source, skyBoxTexture, material, 2);
-            Shader.SetGlobalTexture("_skyBoxTexture", skyBoxTexture);
+            skyBoxDiffuseTexture = new RenderTexture(64, 64, 0)
+            {
+                wrapModeU = TextureWrapMode.Repeat,
+                wrapModeV = TextureWrapMode.Clamp,
+                useMipMap = true,
+                autoGenerateMips = true,
+            };
+
+            skyBoxReflectionTexture = new RenderTexture(64, 64, 0)
+            {
+                wrapModeU = TextureWrapMode.Repeat,
+                wrapModeV = TextureWrapMode.Clamp,
+                useMipMap = true,
+                autoGenerateMips = true,
+            };
+
+            Graphics.Blit(source, skyBoxDiffuseTexture, material, 2);
+            Shader.SetGlobalTexture("_skyBoxDiffuseTexture", skyBoxDiffuseTexture);
+            Graphics.Blit(source, skyBoxReflectionTexture, material, 3);
+            Shader.SetGlobalTexture("_skyBoxReflectTexture", skyBoxReflectionTexture);
         }
 
         private void Release(RenderTexture source)
@@ -251,7 +276,7 @@ namespace TheProxor.GI
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             {
-                window.cubemapCullingMask = EditorGUILayout.MaskField("Cubemap Culling Mask", window.cubemapCullingMask, layersList.ToArray());
+                window.cubemapCullingMask = 0;
 
                 GUILayout.Space(10);
 
@@ -269,7 +294,7 @@ namespace TheProxor.GI
         {
             camera.enabled = false;
             camera.depthTextureMode = DepthTextureMode.DepthNormals;
-            camera.hideFlags = HideFlags.None;
+            camera.hideFlags = HideFlags.HideInInspector;
             camera.allowHDR = false;
             camera.allowMSAA = false;
             camera.renderingPath = RenderingPath.VertexLit;

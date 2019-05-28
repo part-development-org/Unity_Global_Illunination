@@ -58,9 +58,7 @@
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment fragAO
-			#define UNITY_GBUFFER_INCLUDED
 			#include "UnityCG.cginc"
-			#include "UnityGBuffer.cginc"
 
 			//Input data
 				sampler2D _NormalDepth_00, _NormalDepth_01, _NormalDepth_02, _NormalDepth_03, _NormalDepth_04;
@@ -179,16 +177,15 @@
 			ENDCG
 		}		
 
-		//2
+		//Sky CubeMap Diffuse Baker ( 2 )
 		Pass
 		{
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment fragAO
+			#include "UnityCG.cginc"	
 
-			#include "UnityCG.cginc"
-	
-
+			samplerCUBE _SkyCube;
 
 			struct appdata
 			{
@@ -210,9 +207,109 @@
 				return o;
 			}
 
+			float nrand(float2 uv, float dx, float dy)
+			{
+				uv += float2(dx, dy);
+				return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+			}
+
+			float3 spherical_kernel(float2 uv, float index)
+			{
+				// Uniformaly distributed points
+				// http://mathworld.wolfram.com/SpherePointPicking.html
+				float u = nrand(uv, 0, index) * 2 - 1;
+				float theta = nrand(uv, 1, index) * UNITY_PI * 2;
+				float u2 = sqrt(1 - u * u);
+				return normalize(float3(u2 * cos(theta), u2 * sin(theta), u));
+			}
+
 			fixed4 fragAO(v2f i) : SV_Target
 			{
-				return float4(0,0,1,1);
+				float2 uv = i.uv;
+				float2 posXZ = uv.xy * 2 - 1;
+				float dist = min(0.5, length(posXZ));
+				float posY = sqrt(1 - dist * dist);
+
+				float3 pos = float3(posXZ.x, posY, posXZ.y);
+				float3 vec = normalize(pos);
+				//vec = normalize(pos);
+
+				float4 cube = texCUBE(_SkyCube, vec);
+				float samples = 1000;
+				float weight = 1;
+				
+				for(int i = 0; i < samples; i++)
+				{
+					float3 delta = normalize(spherical_kernel(uv, i) + vec);
+					delta *= (dot(vec, delta) >= 0) * 2 - 1;
+					float w = max(0, dot(delta, vec));
+					weight += w;
+					cube += texCUBE(_SkyCube, delta) * w;
+				}
+
+				return cube /= weight;	
+			}
+
+			ENDCG
+		}
+
+		//Sky CubeMap Reflect Baker ( 2 )
+		Pass
+		{
+			CGPROGRAM
+			#pragma vertex vert
+			#pragma fragment fragAO
+			#include "UnityCG.cginc"	
+
+			samplerCUBE _SkyCube;
+
+			struct appdata
+			{
+				float2 uv : TEXCOORD0;
+				float4 vertex : POSITION;
+			};
+
+			struct v2f
+			{
+				float2 uv : TEXCOORD0;
+				float4 vertex : SV_POSITION;
+			};
+
+			v2f vert(appdata v)
+			{
+				v2f o;
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				o.uv = v.uv;
+				return o;
+			}
+
+			float nrand(float2 uv, float dx, float dy)
+			{
+				uv += float2(dx, dy);
+				return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+			}
+
+			float3 spherical_kernel(float2 uv, float index)
+			{
+				// Uniformaly distributed points
+				// http://mathworld.wolfram.com/SpherePointPicking.html
+				float u = nrand(uv, 0, index) * 2 - 1;
+				float theta = nrand(uv, 1, index) * UNITY_PI * 2;
+				float u2 = sqrt(1 - u * u);
+				return normalize(float3(u2 * cos(theta), u2 * sin(theta), u));
+			}
+
+			fixed4 fragAO(v2f i) : SV_Target
+			{
+				float2 uv = i.uv;
+				float2 posXZ = uv.xy * 2 - 1;
+				float dist = min(1, length(posXZ));
+				float posY = sqrt(1 - dist * dist);
+
+				float3 pos = float3(posXZ.x, posY, posXZ.y);
+				float3 vec = normalize(pos);
+
+				return texCUBE(_SkyCube, vec);
 			}
 
 			ENDCG
