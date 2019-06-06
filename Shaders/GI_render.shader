@@ -81,7 +81,7 @@
 				pos_o += norm_o * 0.05;	
 
 				occ.a = UNITY_SAMPLE_TEX2DARRAY(_skyAOtex, float3((pos_w.xz) / 256 - 0.5, pos_w.y + 10.501)).a;
-				occ.a = pow(occ.a, 1 + (1 - occ.a) * 4.1415926);
+				occ.a = pow(occ.a, (2 - occ.a) * 1.5);
 
 				//Calculate SSAO
 				#ifdef _SKY_QUALITY_0
@@ -130,28 +130,25 @@
 				
 				int raySteps = 3;
 				const float stepsLength [3] ={
-						0.5, 1, 2,
+					0.11, 0.33, 1.0,
 				};
 
 				float ao = 0;
-				float bias = 0.03 * depth_o;			
+				float bias = 0.03 * depth_o;		
+				float rayStart = 0.005 * depth_o;	
+				float Ldivide = 1 + samplesCount;
+				float scale = pow(1 + depth_o, 0.45);
 				
 				for (int s = 0; s < samplesCount; s++)				
 				{
 					//Random vector and ray length
 					float3 delta = mul(unity_WorldToCamera, reflect(samplesDir[s], noise.xyz));
 					delta *= (dot(norm_o, delta) >= 0) * 2 - 1;
-					
-					float3 pos_s0 = pos_o + delta;
-
-					// Re-project the sampling point.
-					float3 pos_sc = mul(proj, pos_s0);
-					float2 uv_s = (pos_sc.xy / pos_s0.z + 1) * 0.5;
+					float l = (1 + s) / (Ldivide);
 
 					for (int r = 0; r < raySteps; r++)
 					{
-						float dist = stepsLength[r];
-						dist = max(0, dist * noise.w);
+						float dist = stepsLength[r] * scale * noise.w + rayStart;
 						
 						float3 pos_s0 = pos_o + delta * dist;
 							
@@ -265,6 +262,8 @@
 						int samplesCount = 6;
 					#endif
 
+					_scale *= pow(1 + depth_o, 0.45);
+
 					const float3 samplesDir [6] ={
 						0, 1, 0,	0,-1, 0,
 						1, 0, 0,	0, 0,-1,
@@ -352,6 +351,8 @@
 					};
 				
 					float bias = 0.03 * depth_o;
+					float rayStart = 0.001 * depth_o;	
+					_scale *= pow(1 + depth_o, 0.45);
 
 					//High Quality				
 					for (int s = 0; s < samplesCount; s++)				
@@ -362,9 +363,9 @@
 
 						for (int r = 0; r < raySteps; r++)
 						{
-							float dist = stepsLength[r] * noise.w;
+							float dist = stepsLength[r] * _scale * noise.w + rayStart;
 						
-							float3 pos_s0 = pos_o + delta * dist * _scale;
+							float3 pos_s0 = pos_o + delta * dist;
 							
 							// Re-project the sampling point.
 							float3 pos_sc = mul(proj, pos_s0);
@@ -385,10 +386,7 @@
 							}
 						}
 					}
-
 					occ.a = max(0.001, 1 - occ.a / samplesCount);
-					occ.a = pow(occ.a, 2 - occ.a);
-
 				#endif
 
 
@@ -594,7 +592,7 @@
 				float3 skyDiffuseNormal = normalize(lerp(float3(0,1,0), worldNormal, ao.a));
 				float2 skyCubeDiffuseUV = skyDiffuseNormal.xz * 0.5 + 0.5;
 				float3 skyColor = tex2D(_skyBoxDiffuseTexture, skyCubeDiffuseUV).rgb * ao.a;
-				float3 fakeSunGI = _SunColor * pow(ao.a, 2 - ao.a) * 0.15 * _BounceIntensity * max(0, (dot((-worldNormal + float3(0,1,0)), _WorldSpaceLightPos0.xyz) + 0.5) / 1.5);
+				float3 fakeSunGI = _SunColor * pow(ao.a, 2 - ao.a) * 0.1 * _BounceIntensity * max(0, (dot((-worldNormal + float3(0,1,0)), _WorldSpaceLightPos0.xyz) + 0.5) / 1.5);
 
 				c.rgb += (skyColor + fakeSunGI) * sceneAlbedo * (1 - specularColor); //Diffuse Light
 				c.rgb += skyCubeReflect; //Specular Light

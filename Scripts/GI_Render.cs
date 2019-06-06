@@ -13,7 +13,7 @@ public class GI_Render : MonoBehaviour
 
 
     [SerializeField]
-    [Range(1, 4)]
+    [Range(1, 3)]
     public int skyDownsampling = 1;
 
     [SerializeField]
@@ -45,6 +45,7 @@ public class GI_Render : MonoBehaviour
 
     RenderTexture _blurX, _blurY, _skyAO, _smallAO;
     Material _material;
+    float blurDist = 1.35f;
     Vector2 screenResCur;
     #endregion
 
@@ -105,14 +106,22 @@ public class GI_Render : MonoBehaviour
 
             Graphics.Blit(source, _skyAO, _material, 0);
             Graphics.Blit(source, _smallAO, _material, 1);
-            _material.SetTexture("_smallAO", _smallAO);
+            _material.SetTexture(Shader.PropertyToID("_smallAO"), _smallAO);
 
             _material.SetFloat("_blurSharpness", 0.65f);
+
+            if(skyDownsampling == 1)
+                blurDist = 1.35f;
+            else if(skyDownsampling == 2)
+                blurDist = 1.15f;
+            else if(skyDownsampling == 3)
+                blurDist = 1.75f;
+
             // blur vertical
-            _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 1.35f * skyDownsampling));
+            _material.SetVector("_DenoiseAngle", new Vector2(0.0f, 1.15f * skyDownsampling));
             Graphics.Blit(_skyAO, _blurY, _material, 2);
             // blur horizontal
-            _material.SetVector("_DenoiseAngle", new Vector2(1.35f * skyDownsampling, 0.0f));
+            _material.SetVector("_DenoiseAngle", new Vector2(1.15f * skyDownsampling, 0.0f));
             Graphics.Blit(_blurY, _blurX, _material, 2);
 
             Graphics.Blit(_blurX, _blurY, _material, 5);
@@ -129,7 +138,7 @@ public class GI_Render : MonoBehaviour
             _material.SetColor("_SkyColor", RenderSettings.ambientSkyColor);
             _material.SetColor("_SunColor", RenderSettings.sun.color * RenderSettings.sun.intensity);
             _material.SetFloat("_BounceIntensity", RenderSettings.sun.bounceIntensity);
-            _material.SetTexture("_HalfRes", _blurY);
+            _material.SetTexture(Shader.PropertyToID("_HalfRes"), _blurY);
 
 
             Graphics.Blit(source, destination, _material, 3);
